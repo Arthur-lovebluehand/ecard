@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>蘇珮瑋 Arthur｜數位整合顧問</title>
+<meta name="description" content="數位整合顧問｜品牌網站・LINE 會員系統・App 開發・企業簡報">
+<meta property="og:title" content="蘇珮瑋 Arthur｜數位整合顧問">
+<meta property="og:description" content="數位整合顧問｜品牌網站・LINE 會員系統・App 開發・企業簡報">
+<meta property="og:type" content="website">
+<meta property="og:image" content="images/p1.png">
+<style>
+  :root{--page:#0F1B30;--html:#0F1B30;--bar:#1B3358;--foot:#13223D;--btn:#E8A020;--btn-text:#1B3358;--outline-text:#EEF2F8;--dot:#E8A020}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{background:var(--html,#B9E2FA)}body{background:var(--page);min-height:100vh}
+  body{font-family:"Microsoft JhengHei","微軟正黑體","Noto Sans TC",sans-serif;-webkit-font-smoothing:antialiased;color:#222}
+
+  /* ── 上方工具列：QR + 加好友 + 分享 ── */
+  .bar{position:sticky;top:0;z-index:5;background:var(--bar);padding:10px 12px;display:flex;gap:10px;align-items:center;box-shadow:0 2px 10px rgba(0,0,0,.12)}
+  .qr{width:96px;height:96px;flex:none;background:#fff;border-radius:10px;padding:6px;display:flex;align-items:center;justify-content:center}
+  .qr img,.qr canvas{width:84px!important;height:84px!important}
+  .bar-btns{flex:1;display:flex;flex-direction:column;gap:8px}
+  .bar-btns a,.bar-btns button{display:flex;align-items:center;justify-content:center;gap:6px;height:42px;border:none;border-radius:10px;
+    background:#06C755;color:#fff;font-size:17px;font-family:inherit;text-decoration:none;cursor:pointer;box-shadow:0 3px 8px rgba(0,0,0,.15)}
+  .bar-btns svg{width:18px;height:18px}
+  .views{position:fixed;top:0;right:0;z-index:6;background:rgba(0,0,0,.55);color:#fff;font-size:12px;padding:2px 8px;border-bottom-left-radius:6px;display:none}
+
+  /* ── 卡片輪播 ── */
+  .track{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:14px 16px 10px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .track::-webkit-scrollbar{display:none}
+  .panel{flex:none;width:min(82vw,330px);scroll-snap-align:center;border-radius:18px;overflow:hidden;display:flex;flex-direction:column;
+    background:var(--foot);box-shadow:0 8px 22px rgba(0,0,0,.18)}
+  .panel img{display:block;width:100%;height:auto}
+  .foot{flex:1;display:flex;flex-direction:column;justify-content:flex-start;gap:9px;padding:14px 18px 18px}
+  .foot a{display:flex;align-items:center;justify-content:center;min-height:44px;border-radius:999px;text-decoration:none;font-size:16px;font-family:inherit;
+    background:var(--btn);color:var(--btn-text);box-shadow:0 4px 10px rgba(0,0,0,.14)}
+  .foot a.outline{background:transparent;color:var(--outline-text);border:1.5px solid var(--outline-text);box-shadow:none}
+  .dots{display:flex;justify-content:center;gap:8px;padding:4px 0 26px}
+  .dots i{width:8px;height:8px;border-radius:50%;background:var(--dot);opacity:.35;transition:.2s}
+  .dots i.on{opacity:1;width:22px;border-radius:4px}
+  @media (min-width:1100px){.track{justify-content:center;overflow:visible}.dots{display:none}}
+
+  .toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%) translateY(20px);background:rgba(0,0,0,.8);color:#fff;
+    padding:10px 20px;border-radius:999px;font-size:14px;opacity:0;transition:.25s;pointer-events:none;z-index:9}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="views" id="views"></div>
+<div class="bar">
+  <div class="qr" id="qrcode"></div>
+  <div class="bar-btns">
+    <a id="addFriend" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C6.5 3 2 6.6 2 11.1c0 4 3.6 7.4 8.4 8 .3.1.8.2.9.5.1.3.1.7 0 1l-.1.9c0 .3-.2 1 .9.5s5.9-3.5 8-6c1.5-1.6 1.9-3.2 1.9-4.9C22 6.6 17.5 3 12 3z"/></svg>
+      <span id="addFriendLabel">加LINE好友</span>
+    </a>
+    <button id="shareBtn" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
+      分享此名片
+    </button>
+  </div>
+</div>
+<div class="track" id="track"></div>
+<div class="dots" id="dots"></div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<script>
+/* ======================= 設定區 ======================= */
+const CONFIG = {
+  "liffId": "",   // ← 填入 LIFF ID
+  // pageUrl 留空＝自動用目前網址,
+  "pageUrl": "",
+  "title": "蘇珮瑋 Arthur｜數位整合顧問",
+  "addFriend": {
+    "label": "加LINE好友",
+    "url": "https://line.me/ti/p/~arthur0321"
+  },
+  "flex": {
+    "footerBg": "#13223D",
+    "primaryColor": "#E8A020",
+    "secondaryColor": "#EEF2F8"
+  },
+  "panels": [
+    {
+      "alt": "封面",
+      "buttons": [
+        {
+          "label": "分享名片給朋友",
+          "url": "__share__"
+        }
+      ],
+      "image": "images/p1.jpg",
+      "ratio": "1000:1120"
+    },
+    {
+      "alt": "服務項目",
+      "buttons": [
+        {
+          "label": "加我 LINE 聊聊",
+          "url": "https://line.me/ti/p/~arthur0321"
+        }
+      ],
+      "image": "images/p2.jpg",
+      "ratio": "1000:1120"
+    },
+    {
+      "alt": "經歷作品",
+      "buttons": [
+        {
+          "label": "下載 1328宇宙導航 App",
+          "url": "https://arthur-lovebluehand.github.io/1328-download/"
+        }
+      ],
+      "image": "images/p3.jpg",
+      "ratio": "1000:1120"
+    },
+    {
+      "alt": "聯絡方式",
+      "buttons": [
+        {
+          "label": "0911-703-325",
+          "url": "tel:0911703325"
+        },
+        {
+          "label": "LINE：arthur0321",
+          "url": "https://line.me/ti/p/~arthur0321"
+        },
+        {
+          "label": "arthur0321@gmail.com",
+          "url": "mailto:arthur0321@gmail.com",
+          "style": "outline"
+        }
+      ],
+      "image": "images/p4.jpg",
+      "ratio": "1000:680"
+    }
+  ]
+};
+/* ===================================================== */
+
+const $ = (id) => document.getElementById(id);
+const pageUrl = () => CONFIG.pageUrl || (location.origin + location.pathname);
+const absUrl = (p) => new URL(p, pageUrl()).href;
+const toast = (m) => { const t = $("toast"); t.textContent = m; t.classList.add("show"); setTimeout(() => t.classList.remove("show"), 2200); };
+const SHARE = "__share__";
+const resolve = (u) => u === SHARE ? null : u;
+
+/* ── 上方列 ── */
+$("addFriend").href = CONFIG.addFriend.url;
+$("addFriendLabel").textContent = CONFIG.addFriend.label;
+try { new QRCode($("qrcode"), { text: pageUrl(), width: 168, height: 168, colorDark: "#111111", colorLight: "#ffffff" }); } catch (e) {}
+
+/* ── 卡片 ── */
+CONFIG.panels.forEach((p, i) => {
+  const el = document.createElement("div"); el.className = "panel";
+  el.innerHTML = `<img src="${p.image}" alt="${p.alt}" loading="${i ? "lazy" : "eager"}"><div class="foot"></div>`;
+  p.buttons.forEach((b) => {
+    const a = document.createElement("a");
+    a.textContent = b.label;
+    if (b.style === "outline") a.className = "outline";
+    if (b.url === SHARE) { a.href = "#"; a.addEventListener("click", (e) => { e.preventDefault(); shareCard(); }); }
+    else { a.href = b.url; if (!b.url.startsWith("tel:") && !b.url.startsWith("mailto:")) { a.target = "_blank"; a.rel = "noopener"; } }
+    el.querySelector(".foot").appendChild(a);
+  });
+  $("track").appendChild(el);
+  $("dots").appendChild(document.createElement("i"));
+});
+const dots = [...$("dots").children]; dots[0] && dots[0].classList.add("on");
+$("track").addEventListener("scroll", () => {
+  const t = $("track"), w = t.firstElementChild.offsetWidth + 12;
+  const idx = Math.round(t.scrollLeft / w); dots.forEach((d, i) => d.classList.toggle("on", i === idx));
+}, { passive: true });
+
+/* ── LINE 分享（Flex 輪播，跟網頁一樣的 4 張卡） ── */
+function flexMessage() {
+  const url = pageUrl();
+  const bubbles = CONFIG.panels.map((p) => ({
+    type: "bubble", size: "mega",
+    hero: { type: "image", url: absUrl(p.image), size: "full", aspectMode: "cover", aspectRatio: p.ratio, action: { type: "uri", uri: url } },
+    footer: { type: "box", layout: "vertical", spacing: "sm", backgroundColor: CONFIG.flex.footerBg, paddingAll: "14px",
+      contents: p.buttons.map((b) => ({
+        type: "button", height: "sm", style: b.style === "outline" ? "secondary" : "primary",
+        color: b.style === "outline" ? CONFIG.flex.secondaryColor : CONFIG.flex.primaryColor,
+        action: { type: "uri", label: b.label.slice(0, 20), uri: resolve(b.url) || url }
+      }))
+    }
+  }));
+  return { type: "flex", altText: CONFIG.title, contents: { type: "carousel", contents: bubbles } };
+}
+
+let liffReady = false;
+(async () => {
+  if (!CONFIG.liffId || !window.liff) return;
+  try {
+    await liff.init({ liffId: CONFIG.liffId });
+    liffReady = true;
+    if (new URLSearchParams(location.search).get("share") === "1") shareCard();
+  } catch (e) { console.warn("LIFF init 失敗", e); }
+})();
+
+async function shareCard() {
+  if (liffReady && liff.isApiAvailable("shareTargetPicker")) {
+    if (!liff.isLoggedIn()) { liff.login({ redirectUri: pageUrl() + "?share=1" }); return; }
+    try { const r = await liff.shareTargetPicker([flexMessage()]); if (r) toast("已分享，謝謝你！"); }
+    catch (e) { toast("分享失敗：" + (e.message || e)); }
+    return;
+  }
+  if (CONFIG.liffId) { location.href = `https://liff.line.me/${CONFIG.liffId}?share=1`; return; }   // 在 LINE 外 → 用 LINE 開啟再分享
+  const url = pageUrl();
+  if (navigator.share) { try { await navigator.share({ title: CONFIG.title, url }); } catch (e) {} return; }
+  try { await navigator.clipboard.writeText(url); toast("名片連結已複製"); } catch (e) { prompt("複製名片連結：", url); }
+}
+$("shareBtn").addEventListener("click", shareCard);
+</script>
+</body>
+</html>
